@@ -1,0 +1,242 @@
+syntax = "proto3";
+
+option csharp_namespace = "TravelBooking.GrpcApi";
+
+import "google/api/annotations.proto";
+
+package travel;
+
+// ─────────────────────────────────────────
+// Travel Booking Service
+// ─────────────────────────────────────────
+service TravelService {
+
+  // Search available flights
+  rpc SearchFlights (FlightSearchRequest) returns (FlightSearchResponse) {
+    option (google.api.http) = {
+      post: "/v1/flights/search"
+      body: "*"
+    };
+  }
+
+  // Get pricing for a specific flight
+  rpc GetFlightPricing (FlightPricingRequest) returns (FlightPricingResponse) {
+    option (google.api.http) = {
+      get: "/v1/flights/{flight_id}/pricing"
+    };
+  }
+
+  // Search available hotels
+  rpc SearchHotels (HotelSearchRequest) returns (HotelSearchResponse) {
+    option (google.api.http) = {
+      post: "/v1/hotels/search"
+      body: "*"
+    };
+  }
+
+  // Get pricing for a hotel
+  rpc GetHotelPricing (HotelPricingRequest) returns (HotelPricingResponse) {
+    option (google.api.http) = {
+      get: "/v1/hotels/{hotel_id}/pricing"
+    };
+  }
+
+  // Create a booking (flight + optional hotel)
+  rpc CreateBooking (CreateBookingRequest) returns (BookingResponse) {
+    option (google.api.http) = {
+      post: "/v1/bookings"
+      body: "*"
+    };
+  }
+
+  // Get booking details
+  rpc GetBooking (GetBookingRequest) returns (BookingResponse) {
+    option (google.api.http) = {
+      get: "/v1/bookings/{booking_id}"
+    };
+  }
+
+  // Cancel a booking
+  rpc CancelBooking (CancelBookingRequest) returns (CancelBookingResponse) {
+    option (google.api.http) = {
+      delete: "/v1/bookings/{booking_id}"
+    };
+  }
+}
+
+// ─────────────────────────────────────────
+// Flight Messages
+// ─────────────────────────────────────────
+message FlightSearchRequest {
+  string origin        = 1; // IATA code e.g. "BOM"
+  string destination   = 2; // IATA code e.g. "DEL"
+  string departure_date = 3; // ISO date "2025-12-01"
+  string return_date   = 4; // ISO date, empty for one-way
+  int32  passengers    = 5;
+  CabinClass cabin_class = 6;
+}
+
+message FlightSearchResponse {
+  repeated FlightOption flights = 1;
+  int32 total_results = 2;
+}
+
+message FlightOption {
+  string flight_id     = 1;
+  string airline       = 2;
+  string flight_number = 3;
+  string origin        = 4;
+  string destination   = 5;
+  string departure_time = 6;
+  string arrival_time  = 7;
+  int32  duration_minutes = 8;
+  int32  stops         = 9;
+  double base_price    = 10;
+  string currency      = 11;
+  CabinClass cabin_class = 12;
+  int32  seats_available = 13;
+}
+
+message FlightPricingRequest {
+  string flight_id  = 1;
+  int32  passengers = 2;
+  CabinClass cabin_class = 3;
+}
+
+message FlightPricingResponse {
+  string flight_id    = 1;
+  double base_fare    = 2;
+  double taxes        = 3;
+  double fees         = 4;
+  double total_price  = 5;
+  string currency     = 6;
+  repeated PriceBreakdown breakdown = 7;
+  string price_valid_until = 8;
+}
+
+message PriceBreakdown {
+  string label  = 1;
+  double amount = 2;
+}
+
+// ─────────────────────────────────────────
+// Hotel Messages
+// ─────────────────────────────────────────
+message HotelSearchRequest {
+  string city        = 1;
+  string check_in    = 2; // ISO date
+  string check_out   = 3; // ISO date
+  int32  guests      = 4;
+  int32  rooms       = 5;
+  int32  min_stars   = 6;
+  double max_price_per_night = 7;
+}
+
+message HotelSearchResponse {
+  repeated HotelOption hotels = 1;
+  int32 total_results = 2;
+}
+
+message HotelOption {
+  string hotel_id    = 1;
+  string name        = 2;
+  string city        = 3;
+  string address     = 4;
+  int32  stars       = 5;
+  double rating      = 6;
+  double price_per_night = 7;
+  string currency    = 8;
+  repeated string amenities = 9;
+  bool   free_cancellation  = 10;
+}
+
+message HotelPricingRequest {
+  string hotel_id  = 1;
+  string check_in  = 2;
+  string check_out = 3;
+  int32  rooms     = 4;
+  int32  guests    = 5;
+}
+
+message HotelPricingResponse {
+  string hotel_id       = 1;
+  int32  nights         = 2;
+  double price_per_night = 3;
+  double subtotal       = 4;
+  double taxes          = 5;
+  double total_price    = 6;
+  string currency       = 7;
+  string cancellation_policy = 8;
+}
+
+// ─────────────────────────────────────────
+// Booking Messages
+// ─────────────────────────────────────────
+message CreateBookingRequest {
+  string flight_id      = 1; // required
+  string hotel_id       = 2; // optional
+  int32  passengers     = 3;
+  CabinClass cabin_class = 4;
+  repeated PassengerDetail passenger_details = 5;
+  ContactInfo contact   = 6;
+  string payment_token  = 7;
+}
+
+message PassengerDetail {
+  string first_name  = 1;
+  string last_name   = 2;
+  string date_of_birth = 3;
+  string passport_number = 4;
+  string nationality = 5;
+}
+
+message ContactInfo {
+  string email = 1;
+  string phone = 2;
+}
+
+message GetBookingRequest {
+  string booking_id = 1;
+}
+
+message CancelBookingRequest {
+  string booking_id = 1;
+  string reason     = 2;
+}
+
+message BookingResponse {
+  string booking_id    = 1;
+  BookingStatus status = 2;
+  string flight_id     = 3;
+  string hotel_id      = 4;
+  double total_amount  = 5;
+  string currency      = 6;
+  string created_at    = 7;
+  string pnr_code      = 8; // Passenger Name Record
+}
+
+message CancelBookingResponse {
+  string booking_id    = 1;
+  bool   success       = 2;
+  double refund_amount = 3;
+  string message       = 4;
+}
+
+// ─────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────
+enum CabinClass {
+  CABIN_CLASS_UNSPECIFIED = 0;
+  ECONOMY   = 1;
+  PREMIUM_ECONOMY = 2;
+  BUSINESS  = 3;
+  FIRST     = 4;
+}
+
+enum BookingStatus {
+  BOOKING_STATUS_UNSPECIFIED = 0;
+  CONFIRMED  = 1;
+  PENDING    = 2;
+  CANCELLED  = 3;
+  FAILED     = 4;
+}
