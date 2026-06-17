@@ -1,0 +1,707 @@
+{
+  "info": {
+    "_postman_id": "88d9cab9-a760-46d9-9f9c-126e0dc2ac93",
+    "name": "Travel Booking gRPC API",
+    "description": "REST/JSON endpoints for Travel Booking gRPC API with JSON Transcoding.\n\nBase URL: https://localhost:5001\n\n**Setup:**\n1. Run the API: `dotnet run`\n2. If SSL error, disable SSL verification in Postman Settings → General → SSL certificate verification OFF\n3. All endpoints return JSON automatically via gRPC JSON Transcoding",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "28763933"
+  },
+  "item": [
+    {
+      "name": "🛫 Flights",
+      "item": [
+        {
+          "name": "Search Flights",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has flights array', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.flights).to.be.an('array');",
+                  "    pm.expect(json.totalResults).to.be.above(0);",
+                  "});",
+                  "pm.test('Response time < 2000ms', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "",
+                  "// Auto-save first flightId for later requests",
+                  "const json = pm.response.json();",
+                  "if (json.flights && json.flights.length > 0) {",
+                  "    pm.collectionVariables.set('flightId', json.flights[0].flightId);",
+                  "    console.log('Saved flightId:', json.flights[0].flightId);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"origin\": \"BOM\",\n    \"destination\": \"DEL\",\n    \"departureDate\": \"2025-12-01\",\n    \"returnDate\": \"\",\n    \"passengers\": 2,\n    \"cabinClass\": \"ECONOMY\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/flights/search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "flights",
+                "search"
+              ]
+            },
+            "description": "Search available flights between two cities.\n\n**cabinClass options:** `ECONOMY`, `PREMIUM_ECONOMY`, `BUSINESS`, `FIRST`\n\n**origin/destination:** Use IATA airport codes e.g. BOM, DEL, BLR, HYD, MAA, CCU"
+          },
+          "response": []
+        },
+        {
+          "name": "Search Flights - Business Class",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": \"BOM\",\n  \"destination\": \"BLR\",\n  \"departureDate\": \"2025-12-10\",\n  \"returnDate\": \"2025-12-15\",\n  \"passengers\": 1,\n  \"cabinClass\": \"BUSINESS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/flights/search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "flights",
+                "search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Flight Pricing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has pricing fields', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.totalPrice).to.be.a('number');",
+                  "    pm.expect(json.currency).to.eql('INR');",
+                  "    pm.expect(json.breakdown).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/flights/{{flightId}}/pricing?passengers=2&cabinClass=ECONOMY",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "flights",
+                "{{flightId}}",
+                "pricing"
+              ],
+              "query": [
+                {
+                  "key": "passengers",
+                  "value": "2"
+                },
+                {
+                  "key": "cabinClass",
+                  "value": "ECONOMY"
+                }
+              ]
+            },
+            "description": "Get full price breakdown for a specific flight including base fare, taxes, and fees.\n\nPrice is valid for 15 minutes (see `priceValidUntil` in response)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Flight Pricing - Business",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/flights/FL003/pricing?passengers=1&cabinClass=BUSINESS",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "flights",
+                "FL003",
+                "pricing"
+              ],
+              "query": [
+                {
+                  "key": "passengers",
+                  "value": "1"
+                },
+                {
+                  "key": "cabinClass",
+                  "value": "BUSINESS"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏨 Hotels",
+      "item": [
+        {
+          "name": "Search Hotels",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has hotels array', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.hotels).to.be.an('array');",
+                  "    pm.expect(json.totalResults).to.be.above(0);",
+                  "});",
+                  "",
+                  "// Auto-save first hotelId",
+                  "const json = pm.response.json();",
+                  "if (json.hotels && json.hotels.length > 0) {",
+                  "    pm.collectionVariables.set('hotelId', json.hotels[0].hotelId);",
+                  "    console.log('Saved hotelId:', json.hotels[0].hotelId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Delhi\",\n  \"checkIn\": \"2025-12-01\",\n  \"checkOut\": \"2025-12-05\",\n  \"guests\": 2,\n  \"rooms\": 1,\n  \"minStars\": 3,\n  \"maxPricePerNight\": 15000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/hotels/search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "hotels",
+                "search"
+              ]
+            },
+            "description": "Search available hotels in a city.\n\nFilter by `minStars` (1-5) and `maxPricePerNight` in INR."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Hotels - Luxury Only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Mumbai\",\n  \"checkIn\": \"2025-12-10\",\n  \"checkOut\": \"2025-12-12\",\n  \"guests\": 2,\n  \"rooms\": 1,\n  \"minStars\": 5,\n  \"maxPricePerNight\": 50000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/hotels/search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "hotels",
+                "search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Hotel Pricing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has pricing fields', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.nights).to.be.above(0);",
+                  "    pm.expect(json.totalPrice).to.be.a('number');",
+                  "    pm.expect(json.cancellationPolicy).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/hotels/{{hotelId}}/pricing?checkIn=2025-12-01&checkOut=2025-12-05&rooms=1&guests=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "hotels",
+                "{{hotelId}}",
+                "pricing"
+              ],
+              "query": [
+                {
+                  "key": "checkIn",
+                  "value": "2025-12-01"
+                },
+                {
+                  "key": "checkOut",
+                  "value": "2025-12-05"
+                },
+                {
+                  "key": "rooms",
+                  "value": "1"
+                },
+                {
+                  "key": "guests",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "Get total price for a hotel stay including taxes and cancellation policy."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📋 Bookings",
+      "item": [
+        {
+          "name": "Create Booking (Flight + Hotel)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Booking confirmed', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('CONFIRMED');",
+                  "    pm.expect(json.bookingId).to.be.a('string');",
+                  "    pm.expect(json.pnrCode).to.be.a('string');",
+                  "});",
+                  "",
+                  "// Auto-save bookingId for Get/Cancel requests",
+                  "const json = pm.response.json();",
+                  "if (json.bookingId) {",
+                  "    pm.collectionVariables.set('bookingId', json.bookingId);",
+                  "    console.log('Saved bookingId:', json.bookingId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flightId\": \"{{flightId}}\",\n  \"hotelId\": \"{{hotelId}}\",\n  \"passengers\": 1,\n  \"cabinClass\": \"ECONOMY\",\n  \"passengerDetails\": [\n    {\n      \"firstName\": \"Rahul\",\n      \"lastName\": \"Sharma\",\n      \"dateOfBirth\": \"1990-05-15\",\n      \"passportNumber\": \"A1234567\",\n      \"nationality\": \"IN\"\n    }\n  ],\n  \"contact\": {\n    \"email\": \"rahul.sharma@example.com\",\n    \"phone\": \"+91-9999999999\"\n  },\n  \"paymentToken\": \"pay_test_token_xyz\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bookings"
+              ]
+            },
+            "description": "Create a booking with flight + optional hotel.\n\nThe `bookingId` from the response is auto-saved to the `{{bookingId}}` collection variable for use in Get and Cancel requests."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Booking (Flight Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flightId\": \"FL002\",\n  \"hotelId\": \"\",\n  \"passengers\": 2,\n  \"cabinClass\": \"ECONOMY\",\n  \"passengerDetails\": [\n    {\n      \"firstName\": \"Priya\",\n      \"lastName\": \"Patel\",\n      \"dateOfBirth\": \"1995-08-20\",\n      \"passportNumber\": \"B9876543\",\n      \"nationality\": \"IN\"\n    },\n    {\n      \"firstName\": \"Amit\",\n      \"lastName\": \"Patel\",\n      \"dateOfBirth\": \"1993-03-10\",\n      \"passportNumber\": \"B9876544\",\n      \"nationality\": \"IN\"\n    }\n  ],\n  \"contact\": {\n    \"email\": \"priya.patel@example.com\",\n    \"phone\": \"+91-8888888888\"\n  },\n  \"paymentToken\": \"pay_test_token_abc\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has booking details', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.bookingId).to.be.a('string');",
+                  "    pm.expect(json.status).to.be.oneOf(['CONFIRMED', 'PENDING', 'CANCELLED']);",
+                  "    pm.expect(json.pnrCode).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/bookings/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bookings",
+                "{{bookingId}}"
+              ]
+            },
+            "description": "Fetch booking details by ID.\n\n`{{bookingId}}` is auto-populated after running **Create Booking**."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cancellation successful', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.refundAmount).to.be.a('number');",
+                  "    pm.expect(json.message).to.include('cancelled');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/bookings/{{bookingId}}?reason=Change of plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bookings",
+                "{{bookingId}}"
+              ],
+              "query": [
+                {
+                  "key": "reason",
+                  "value": "Change of plans"
+                }
+              ]
+            },
+            "description": "Cancel a booking and get refund details.\n\n`{{bookingId}}` is auto-populated after running **Create Booking**."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('API is healthy', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('healthy');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Check if the API is running."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "❌ Error Cases",
+      "item": [
+        {
+          "name": "Search Flights - Missing Origin (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": \"\",\n  \"destination\": \"DEL\",\n  \"departureDate\": \"2025-12-01\",\n  \"passengers\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/flights/search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "flights",
+                "search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Booking - No Passengers (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flightId\": \"FL001\",\n  \"passengers\": 1,\n  \"passengerDetails\": [],\n  \"contact\": {\n    \"email\": \"test@example.com\",\n    \"phone\": \"+91-9999999999\"\n  },\n  \"paymentToken\": \"pay_test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Booking - No FlightId (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flightId\": \"\",\n  \"passengers\": 1,\n  \"passengerDetails\": [\n    {\n      \"firstName\": \"Test\",\n      \"lastName\": \"User\",\n      \"dateOfBirth\": \"1990-01-01\",\n      \"passportNumber\": \"X1234567\",\n      \"nationality\": \"IN\"\n    }\n  ],\n  \"contact\": {\n    \"email\": \"test@example.com\",\n    \"phone\": \"+91-9999999999\"\n  },\n  \"paymentToken\": \"pay_test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:5001",
+      "type": "string"
+    },
+    {
+      "key": "flightId",
+      "value": "FL001",
+      "type": "string"
+    },
+    {
+      "key": "hotelId",
+      "value": "HT001",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
